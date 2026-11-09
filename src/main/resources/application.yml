@@ -1,0 +1,128 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: quickbi-sso-portal
+  profiles:
+    active: dev
+
+  # Jackson 配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+  # 数据源配置
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin123
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*"
+
+  # Redis 配置
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password:
+      database: 0
+      timeout: 10s
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.quickbi.sso.portal.entity
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# Sa-Token 配置
+sa-token:
+  token-name: Authorization
+  # 前端按 OAuth2 习惯发送 "Bearer <token>"，此处声明前缀以便识别
+  token-prefix: Bearer
+  timeout: 86400
+  active-timeout: 1800
+  is-concurrent: true
+  is-share: true
+  token-style: uuid
+  is-log: false
+  is-read-header: true
+  is-read-cookie: false
+
+# ===== MSD Entra ID 单点登录配置 =====
+# 以下四项来自 Azure 门户：Entra ID -> 应用注册 -> 你的应用
+# 本地无真实参数时，把 mock-enabled 设为 true 可跑通前后端链路
+msd:
+  sso:
+    tenant-id: ${MSD_TENANT_ID:00000000-0000-0000-0000-000000000000}
+    client-id: ${MSD_CLIENT_ID:00000000-0000-0000-0000-000000000000}
+    client-secret: ${MSD_CLIENT_SECRET:}
+    # 必须与应用注册里配置的重定向 URI 完全一致（dev 前端端口 5183）
+    redirect-uri: ${MSD_REDIRECT_URI:http://localhost:5183/auth/callback}
+    scope: openid profile email offline_access
+    # ISID 在 id_token 里的 claim 名，需在应用注册的“令牌配置”中勾选该可选声明
+    isid-claim: isid
+    display-name-claim: name
+    email-claim: email
+    # 仅本地联调使用，生产务必为 false
+    mock-enabled: ${MSD_MOCK_ENABLED:true}
+    success-redirect: /MyReports
+
+# Knife4j 接口文档配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: default
+      paths-to-match: /**
+      packages-to-scan: com.quickbi.sso.portal.controller
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+# 日志配置
+logging:
+  level:
+    root: info
+    com.quickbi.sso.portal: debug
+    com.quickbi.sso.portal.mapper: debug
